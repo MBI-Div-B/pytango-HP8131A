@@ -310,7 +310,7 @@ class HP8131A(Device):
         self.set_state(DevState.OFF)
         self.info_stream('HP8131A device server closed')
 
-    @command(doc='Simulate single trigger event')
+    @command(doc_in='Simulate single trigger event')
     def manual_trigger(self):
         self.write('*TRG')
 
