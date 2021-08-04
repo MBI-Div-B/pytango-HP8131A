@@ -5,7 +5,7 @@ This device server controls most of the settings for the HP 8131A dual channel p
 * pyvisa
 
 ## Configuration
-* visa_resource: pyvisa resource name. Examples: "ASRL/dev/ttyUSB0::INSTR" for a serial device on /dev/ttyUSB0; "GPIB::6::INSTR" for a GPIB instrument at address 6. See pyvisa documentation.
+* visa_resource: pyvisa resource name. Examples: "ASRL/dev/ttyUSB0::INSTR" for a serial device on /dev/ttyUSB0; "GPIB::6::INSTR" for a GPIB instrument at address 6. See pyvisa documentation (https://pyvisa.readthedocs.io/en/latest/introduction/names.html).
 
 ## Authors
 Michael Schneider
