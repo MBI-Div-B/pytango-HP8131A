@@ -4,7 +4,7 @@ import tango
 from tango import AttrWriteType, DevState, DispLevel
 from tango.server import Device, attribute, command, device_property
 
-import serial, time
+import pyvisa, time
 from enum import IntEnum
 
 
@@ -45,10 +45,17 @@ gpib2attr = {v: k for k, v in attr2gpib.items()}
 class HP8131A(Device):
     '''HP8131A
 
-    This controls most settings on a HP8131A pulse generator via a USB-to-GPIB
-    adapter. The adapter registers as a simple serial device.
+    This controls most settings on a HP8131A pulse generator using pyvisa.
+    Works transparently for regular GPIB connections as well as for USB-GPIB
+    adapters that expose the GPIB interface as a serial device.
     '''
-    port = device_property(dtype=str, default_value='/dev/ttyUSB0')
+    visa_resource = device_property(
+        dtype=str,
+        default_value='ASRL/dev/ttyUSB0::INSTR',
+        doc=('pyvisa resource name. Examples: "ASRL/dev/ttyUSB0::INSTR" '
+             'for a serial device on /dev/ttyUSB0; "GPIB::6::INSTR" for an '
+             'GPIB instrument at address 6. See pyvisa documentation.')
+    )
 
     period = attribute(
         label='period',
@@ -189,8 +196,10 @@ class HP8131A(Device):
         super(HP8131A, self).init_device()
         try:
             self.info_stream(f'Trying to connect to HP8131A on {self.port}')
-            self.serial = serial.Serial(self.port)
-            self.serial.flush()
+            self.rm = pyvisa.ResourceManager('@py')
+            self.dev = self.rm.open_resource(self.visa_resource)
+            self.dev.read_termination = '\n'
+            self.dev.write_termination = '\n'
             idn = self.write_read('*IDN?')
             self.info_stream(f'Connection established on {self.port}:\n{idn}')
             self.set_state(DevState.ON)
@@ -201,17 +210,14 @@ class HP8131A(Device):
 
     @command(dtype_in=str, doc_in='command', dtype_out=str, doc_out='response')
     def write_read(self, msg: str) -> str:
-        self.write(msg)
-        ans = self.serial.readline().decode('ascii').strip()
+        ans = self.dev.query(msg)
         self.debug_stream(ans)
         return ans
     
     @command(dtype_in=str, doc_in='command', dtype_out=None)
     def write(self, msg: str):
-        if not msg.endswith('\n'):
-            msg += '\n'
         self.debug_stream(msg)
-        self.serial.write(msg.encode('ascii'))
+        self.dev.write(msg)
 
     def read_general(self, attr):
         name = attr.get_name()
@@ -300,11 +306,11 @@ class HP8131A(Device):
         self.write(cmd)
     
     def delete_device(self):
-        self.serial.close()
+        self.dev.close()
         self.set_state(DevState.OFF)
         self.info_stream('HP8131A device server closed')
 
-    @command#(doc='Simulate single trigger event')
+    @command(doc='Simulate single trigger event')
     def manual_trigger(self):
         self.write('*TRG')
 
