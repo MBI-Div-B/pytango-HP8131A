@@ -195,13 +195,15 @@ class HP8131A(Device):
     def init_device(self):
         super(HP8131A, self).init_device()
         try:
-            self.info_stream(f'Trying to connect to HP8131A on {self.port}')
+            self.info_stream('Trying to connect to HP8131A on '
+                             f'{self.visa_resource}')
             self.rm = pyvisa.ResourceManager('@py')
             self.dev = self.rm.open_resource(self.visa_resource)
             self.dev.read_termination = '\n'
             self.dev.write_termination = '\n'
             idn = self.write_read('*IDN?')
-            self.info_stream(f'Connection established on {self.port}:\n{idn}')
+            self.info_stream(f'Connection established on {self.visa_resource}:'
+                             f'\n{idn}')
             self.set_state(DevState.ON)
         except Exception as ex:
             self.error_stream(f'Error on initialization: {ex}')
@@ -223,7 +225,8 @@ class HP8131A(Device):
         name = attr.get_name()
         cmd = attr2gpib[name] + '?'
         ans = self.write_read(cmd)
-        if name in ['enabled1', 'cenabled1', 'enabled2', 'cenabled2']:
+        if name in ['enabled1', 'cenabled1', 'enabled2', 'cenabled2',
+                    'trigger_external']:
             value = True if ans == 'ON' else False
         elif name == 'trigger_mode':
             value = TriggerMode[ans]
