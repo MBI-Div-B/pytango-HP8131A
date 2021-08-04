@@ -300,8 +300,8 @@ class HP8131A(Device):
         self.write(cmd)
     
     def delete_device(self):
-        self.set_state(DevState.OFF)
         self.serial.close()
+        self.set_state(DevState.OFF)
         self.info_stream('HP8131A device server closed')
 
     @command#(doc='Simulate single trigger event')
@@ -310,8 +310,11 @@ class HP8131A(Device):
 
     @command
     def selftest(self):
-        self.write_read('*TST?')
-        self.set_state(DevState.ON)
+        ans = self.write_read('*TST?')
+        if ans == '0':
+            self.set_state(DevState.ON)
+        else:
+            self.set_state(DevState.FAULT)
 
 
 # start the server
